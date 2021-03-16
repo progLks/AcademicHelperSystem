@@ -11,6 +11,8 @@ import os
 import fitz
 import io
 
+from ClientsDatabase import ClientDB
+
 
 from http_request_randomizer.requests.proxy.requestProxy import RequestProxy
 
@@ -22,6 +24,8 @@ def HuntPeople():
 
     content = driver.find_element_by_class_name("content-page")
     items = content.find_elements_by_tag_name("a")
+    database = ClientDB()
+    database.CreateTableClients()
     for item in items:
         # WebDriverWait(driver, 2).until(expected_conditions.visibility_of_element_located((By.TAG_NAME , "a")))
         # elem = item.find_element_by_tag_name("a")
@@ -40,19 +44,41 @@ def HuntPeople():
             for page in doc:
                 datafile.write(page.getText("text"))
             datafile.close()
-
+            doc.close()
+            
             #delete pdf
             os.remove("buffer_pdf.pdf")
 
             #pasre data
-            #maybe to bd of json
+            datafile = open('buffer_txt.txt','r')
+            data = datafile.read().replace('Специальность: ', 'Направление подготовки: ').split('Направление подготовки: ')
+            smth = data[0]
+            data.remove(smth)
+            for table in data:
+                if '09.03.03' not in table:
+                    continue
+                i = 1
+                while True:
+                    index = table.find(str(i)+'.', 10)
+                    index2 = table.find(str(i+1)+'.', 10)
+                    if index==-1:
+                        break
+                    if index2==-1:
+                        index2 = table.find('Всего', index)
+                    tableitem = table[index:index2].split('\n')
+                    firstname = tableitem[1]
+                    secondname = tableitem[2]
+                    surname = tableitem[3]
+                    database.AddClient(firstname, secondname, surname)
+                    print (firstname + " " + secondname + " " + surname)
+                    i = i+1
 
+            #maybe to bd of json
+            datafile.close()
             #delete txt
             os.remove("buffer_txt.txt")
-
-
-
     driver.close()
+    database.Close()
 
 
 HuntPeople()
